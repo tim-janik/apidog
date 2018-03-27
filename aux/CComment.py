@@ -17,23 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
-import os, sys, re, shutil
+import os, sys, re, glob
 
 # determine installation directory
 qcommentfilter_dir = os.path.dirname (os.path.abspath (os.path.realpath (sys.argv[0])))
 sys.path.append (qcommentfilter_dir)    # allow loading of modules from installation dir
 
-debugging_on = os.environ.get ('DOXER_QCOMMENT_CONFIG', '').find (':debug:') >= 0
-def debug (*args):
-  if not debugging_on:
-    return
-  import sys
-  line = ""
-  for s in args:
-    if line:
-      line += " "
-    line += str (s)
-  sys.stderr.write ("|> " + line + "\n")
+def printerr (*args, **kwargs):
+  print (*args, file = sys.stderr, **kwargs)
 
 class CommentRegistry:
   def __init__ (self, seed = None):
@@ -49,10 +40,11 @@ class CommentRegistry:
     pickle.dump (self.comments, file)
 
 class CommentTransformer:
-  def __init__ (self, fin, cregistry, fname):
+  def __init__ (self, fname, fin, fout, cregistry):
     self.fin = fin
+    self.fout = fout
     self.fname = fname
-    self.buffer = ''
+    self.buffer = '/** @file '+fname+' */ '
     self.cbuffer = ''
     self.feed_specific = self.feed_text
     self.cregistry = cregistry
@@ -77,7 +69,7 @@ class CommentTransformer:
     #  self.start_line = self.fline
     #  self.feed_specific = self.feed_scomment
     elif char == '\n':
-      sys.stdout.write (self.buffer)
+      self.fout.write (self.buffer)
       self.buffer = ''
   def feed_ccomment (self, char):
     if not self.cbuffer and char == '<':
@@ -105,49 +97,44 @@ class CommentTransformer:
       self.feed (c)
     self.fline += 1
 
-# --- open comment registry ---
-try:
-  comment_registry_base = os.environ['DOXER_QCOMMENT_DUMP']
-except:
-  comment_registry_base = None
-comment_registry_file = None
-comment_registry_count = 0
-if comment_registry_base:
-  while not comment_registry_file:
-    try:
-      comment_registry_count += 1
-      fname = comment_registry_base + (comment_registry_count and str (comment_registry_count) or "")
-      comment_registry_file = os.fdopen (os.open (fname, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644), "w")
-    except OSError as ose:
-      import errno
-      if ose.errno != errno.EEXIST:
-        raise
-
 # --- command line help ---
 def print_help (with_help = True):
-  print ("qcomment.py - part of doxer.py")
+  print ("ccomment.py - helper for doxygen-xml")
   if not with_help:
     return
-  print ("Usage: %s [options] {file} " % os.path.basename (sys.argv[0]))
+  print ("Usage: %s <inputdir> <outputdir>" % os.path.basename (sys.argv[0]))
   print ("Options:")
   print ("  --help, -h                print this help message")
 
+# == globs ==
+FILE_PATTERNS = [
+      '*.c', '*.cc', '*.cxx', '*.cpp', '*.c++' '*.C', '*.CC', '*.Cpp', '*.CPP', '*.CXX', '*.C++',
+      '*.h', '*.hh', '*.hxx', '*.hpp', '*.h++', '*.H', '*.HH', '*.Hpp', '*.HPP', '*.HXX', '*.H++',
+      '*.java', '*.idl', '*.inc',
+  ]
+
 # --- filter all input ---
-comment_registry = None
-for arg in sys.argv[1:]:
-  if arg == "--help" or arg == "-h":
+if len (sys.argv) < 3 or sys.argv[1] == '--help':
     print_help()
     sys.exit (0)
-  else:
-    if not comment_registry:
-      comment_registry = CommentRegistry (comment_registry_count)
-    debug ('QCommentFilter: %s' % arg)
-    fin = open (arg, 'r')
-    ct = CommentTransformer (fin, comment_registry, arg)
-    for lstr in fin:
-      ct.feed_line (lstr)
-    fin.close()
-# --- dump comment registry ---
-if comment_registry_file:
-  comment_registry.flush (comment_registry_file)
-  comment_registry_file.close()
+
+if 1: # <inputdir> <outputdir>
+  inputdir = os.path.realpath (sys.argv[1])
+  outputdir = sys.argv[2]
+  comment_registry = CommentRegistry (0x0beef0c0ffe0aba0def)
+  ilen = len (inputdir) + 1 # length to strip from input file names
+  for g in FILE_PATTERNS:
+    for f in glob.glob (os.path.join (inputdir, g)):
+      assert len (f) > ilen
+      out = os.path.join (outputdir, f[ilen:])
+      printerr (f, out)
+      fin = open (f, 'r')
+      fout = open (out, 'w')
+      ct = CommentTransformer (f, fin, fout, comment_registry)
+      for lstr in fin:
+        ct.feed_line (lstr)
+      fin.close()
+      fout.close()
+  # --- dump comment registry ---
+  with open (os.path.join (outputdir, '.ccomments.p'), 'wb') as ccp:
+    comment_registry.flush (ccp)

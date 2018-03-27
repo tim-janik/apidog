@@ -9,14 +9,16 @@ sys.path.append (qcommentfilter_dir)    # allow loading of modules from installa
 def printerr (*args, **kwargs):
   print (*args, file = sys.stderr, **kwargs)
 
+comment_pattern = r'(\$ccomment\.py:[0-9a-f]+-[0-9]+\$)'
+
 class CommentRegistry:
   def __init__ (self, seed = None):
     self.count = 0
     self.seed = seed
     self.comments = {}
   def add (self, comment_text, fname, fline):
-    key = '____doxer_RegisteredComment_s%s_%u___' % (str (self.seed), 1 + len (self.comments))
-    self.comments[key] = (comment_text, fname, fline)
+    key = '$ccomment.py:%x-%u$' % (self.seed, 1 + len (self.comments)) # MUST match comment_pattern
+    self.comments[key] = comment_text # FIXME: (comment_text, fname, fline)
     return key
   def flush (self, file):
     import pickle
@@ -96,12 +98,34 @@ FILE_PATTERNS = [
       '*.java', '*.idl', '*.inc',
   ]
 
+
+def restore (outputdir, db):
+  import pickle
+  comments = pickle.load (open (db, 'rb'))
+  print (os.path.join (outputdir, '*.xml'))
+  def lookup (s):
+    return comments.get (s, s)
+  for f in glob.glob (os.path.join (outputdir, '*.xml')):
+    with open (f, 'r') as fin:
+      parts = re.split (comment_pattern, fin.read())
+      fin.close()
+    printerr (f, len (parts))
+    restored = map (lambda x: lookup (x), parts)
+    with open (f, 'w') as fout:
+      for s in restored:
+        fout.write (s)
+      fout.close()
+    del parts
+
 # --- filter all input ---
 if len (sys.argv) < 3 or sys.argv[1] == '--help':
     print_help()
     sys.exit (0)
-
-if 1: # <inputdir> <outputdir>
+if sys.argv[1] == '--restore' and len (sys.argv) >= 4:
+  inputdir = os.path.realpath (sys.argv[2])
+  outputdir = sys.argv[3]
+  restore (outputdir, os.path.join (outputdir,  os.path.join (inputdir, '.ccomments.p')))
+else: # <inputdir> <outputdir>
   inputdir = os.path.realpath (sys.argv[1])
   outputdir = sys.argv[2]
   comment_registry = CommentRegistry (0x0beef0c0ffe0aba0def)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 import os, sys, re, glob
+import html
 
 # determine installation directory
 qcommentfilter_dir = os.path.dirname (os.path.abspath (os.path.realpath (sys.argv[0])))
@@ -17,7 +18,7 @@ class CommentRegistry:
     self.seed = seed
     self.comments = {}
   def add (self, comment_text, fname, fline):
-    key = '$ccomment.py:%x-%u$' % (self.seed, 1 + len (self.comments)) # MUST match comment_pattern
+    key = '$ccomment.py:%s-%u$' % (self.seed, 1 + len (self.comments)) # MUST match comment_pattern
     self.comments[key] = comment_text # FIXME: (comment_text, fname, fline)
     return key
   def flush (self, file):
@@ -82,15 +83,6 @@ class CommentTransformer:
       self.feed (c)
     self.fline += 1
 
-# --- command line help ---
-def print_help (with_help = True):
-  print ("ccomment.py - helper for doxygen-xml")
-  if not with_help:
-    return
-  print ("Usage: %s <inputdir> <outputdir>" % os.path.basename (sys.argv[0]))
-  print ("Options:")
-  print ("  --help, -h                print this help message")
-
 # == globs ==
 FILE_PATTERNS = [
       '*.c', '*.cc', '*.cxx', '*.cpp', '*.c++' '*.C', '*.CC', '*.Cpp', '*.CPP', '*.CXX', '*.C++',
@@ -99,17 +91,19 @@ FILE_PATTERNS = [
   ]
 
 
-def restore (outputdir, db):
+def restore (xmldir, db):
   import pickle
   comments = pickle.load (open (db, 'rb'))
-  print (os.path.join (outputdir, '*.xml'))
   def lookup (s):
-    return comments.get (s, s)
-  for f in glob.glob (os.path.join (outputdir, '*.xml')):
+    if not s in comments:
+      return s
+    return html.escape (comments[s])
+  for f in glob.glob (os.path.join (xmldir, '*.xml')):
     with open (f, 'r') as fin:
       parts = re.split (comment_pattern, fin.read())
       fin.close()
-    printerr (f, len (parts))
+    if verbose:
+      printerr ('  RESTORE ', f, len (parts))
     restored = map (lambda x: lookup (x), parts)
     with open (f, 'w') as fout:
       for s in restored:
@@ -117,24 +111,16 @@ def restore (outputdir, db):
       fout.close()
     del parts
 
-# --- filter all input ---
-if len (sys.argv) < 3 or sys.argv[1] == '--help':
-    print_help()
-    sys.exit (0)
-if sys.argv[1] == '--restore' and len (sys.argv) >= 4:
-  inputdir = os.path.realpath (sys.argv[2])
-  outputdir = sys.argv[3]
-  restore (outputdir, os.path.join (outputdir,  os.path.join (inputdir, '.ccomments.p')))
-else: # <inputdir> <outputdir>
-  inputdir = os.path.realpath (sys.argv[1])
-  outputdir = sys.argv[2]
-  comment_registry = CommentRegistry (0x0beef0c0ffe0aba0def)
-  ilen = len (inputdir) + 1 # length to strip from input file names
+def store (sourcedir, codedir, commentdb):
+  sourcedir = os.path.realpath (sourcedir)
+  comment_registry = CommentRegistry ('bb3f3a813d33943f7650097038c3713359a')
+  ilen = len (sourcedir) + 1 # length to strip from input file names
   for g in FILE_PATTERNS:
-    for f in glob.glob (os.path.join (inputdir, g)):
+    for f in glob.glob (os.path.join (sourcedir, g)):
       assert len (f) > ilen
-      out = os.path.join (outputdir, f[ilen:])
-      printerr (f, out)
+      out = os.path.join (codedir, f[ilen:])
+      if verbose:
+        printerr ('  STORE   ', f) # out
       fin = open (f, 'r')
       fout = open (out, 'w')
       ct = CommentTransformer (f, fin, fout, comment_registry)
@@ -142,6 +128,39 @@ else: # <inputdir> <outputdir>
         ct.feed_line (lstr)
       fin.close()
       fout.close()
-  # --- dump comment registry ---
-  with open (os.path.join (outputdir, '.ccomments.p'), 'wb') as ccp:
-    comment_registry.flush (ccp)
+  with open (commentdb, 'wb') as cdb:
+    comment_registry.flush (cdb)
+
+def print_help (with_help = True):
+  print ("%s - helper for doxygen-xml" % os.path.basename (sys.argv[0]))
+  if not with_help:
+    return
+  print ('Usage: %s [OPTIONS] {--store sourcedir builddir|--restore builddir destdir}' % os.path.basename (sys.argv[0]))
+  print ("Options:")
+  print ("  --verbose                 print processing information")
+  print ("  --help                    print this help message")
+
+# parse args, see Usage
+verbose = False
+i = 1
+while i < len (sys.argv):
+  if sys.argv[i] == '--verbose':
+    verbose = True
+  elif sys.argv[i] == '--restore' and i + 2 < len (sys.argv):
+    i += 1
+    codedir = sys.argv[i]
+    i += 1
+    xmldir = sys.argv[i]
+    restore (xmldir, os.path.join (codedir, '.ccomments.p'))
+  elif sys.argv[i] == '--store' and i + 2 < len (sys.argv):
+    i += 1
+    sourcedir = sys.argv[i]
+    i += 1
+    codedir = sys.argv[i]
+    store (sourcedir, codedir, os.path.join (codedir, '.ccomments.p'))
+  elif sys.argv[i] == '--help':
+    print_help()
+    sys.exit (0)
+  else:
+    raise RuntimeError ('argument not recognized: ' + sys.argv[i])
+  i += 1

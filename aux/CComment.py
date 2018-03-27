@@ -1,7 +1,6 @@
-#!/usr/bin/env python2.4
+#!/usr/bin/env python3
 #
-# Doxer - Software documentation system
-# Copyright (C) 2005-2006 Tim Janik
+# Copyright (C) 2005-2006,2018 Tim Janik
 #
 # qcomment.py - subshelled from Doxygen, this is used to rip comments out of source files
 #
@@ -46,8 +45,8 @@ class CommentRegistry:
     self.comments[key] = (comment_text, fname, fline)
     return key
   def flush (self, file):
-    import cPickle
-    cPickle.dump (self.comments, file)
+    import pickle
+    pickle.dump (self.comments, file)
 
 class CommentTransformer:
   def __init__ (self, fin, cregistry, fname):
@@ -118,20 +117,20 @@ if comment_registry_base:
     try:
       comment_registry_count += 1
       fname = comment_registry_base + (comment_registry_count and str (comment_registry_count) or "")
-      comment_registry_file = os.fdopen (os.open (fname, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0644), "w")
-    except OSError, ose:
+      comment_registry_file = os.fdopen (os.open (fname, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644), "w")
+    except OSError as ose:
       import errno
       if ose.errno != errno.EEXIST:
         raise
 
 # --- command line help ---
 def print_help (with_help = True):
-  print "qcomment.py - part of doxer.py"
+  print ("qcomment.py - part of doxer.py")
   if not with_help:
     return
-  print "Usage: %s [options] {file} " % os.path.basename (sys.argv[0])
-  print "Options:"
-  print "  --help, -h                print this help message"
+  print ("Usage: %s [options] {file} " % os.path.basename (sys.argv[0]))
+  print ("Options:")
+  print ("  --help, -h                print this help message")
 
 # --- filter all input ---
 comment_registry = None

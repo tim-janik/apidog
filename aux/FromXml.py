@@ -226,19 +226,19 @@ def print_func (f, prefix = ''):
     print (format_sections (d))
 
 for xmldir in xmldirs:
-  dp = DoxyParser (xmldir)
   if verbose:
     printerr ('  GEN     ', 'markdown docs')
+  dp = DoxyParser (xmldir)
   for n in dp.namespaces:
     if n.anon or not n.has_docs():
       continue
     print ('\n# Namespace ', n.name)
     print (format_sections (n.description()))
-    print ('\n##', 'Functions')
+    print ('\n##', n.name, 'Functions')
     for f in n.functions:
       print_func (f)
   print ('\n#', 'Global Symbols')
-  print ('\n##', 'Functions')
+  print ('\n##', 'Global', 'Functions')
   for i in dp.files:
     for f in i.functions:
       print_func (f)

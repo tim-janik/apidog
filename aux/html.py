@@ -20,6 +20,9 @@ class TocTree:
   def push (self, hx, maxdepth = 9999):
     n = int (hx.name[1])
     if n > maxdepth: return
+    while n < self.level[-1]:
+      self.level.pop()
+      self.stack.pop()
     if n > self.level[-1]:
       ul = self.soup.new_tag ('ul')
       if self.stack[-1].name == 'ul':
@@ -29,9 +32,6 @@ class TocTree:
         self.stack[-1].append (ul)
       self.stack += [ ul ]
       self.level += [ n ]
-    while n < self.level[-1]:
-      self.level.pop()
-      self.stack.pop()
     li = self.soup.new_tag ('li')
     a = self.soup.new_tag ('a')
     a['href'] = '#' + hx['id']

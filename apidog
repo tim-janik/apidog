@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+# This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
+import sys, os
+
+# Produce stderr messages
+def printerr (*args, **kwargs):
+  print (*args, file = sys.stderr, **kwargs)
+
+# Print usage information
+def usage (extended = False):
+  print ("Usage: %s [OPTIONS|--help] [FILES...]" % os.path.basename (sys.argv[0]))
+  if not extended: return
+  print ("OPTIONS:")
+  print ("  --help           print usage information")
+
+# parse args and commands
+cmd, files = None, []
+i = 1
+while i < len (sys.argv):
+  if sys.argv[i] == '--verbose':
+    verbose = True
+  elif sys.argv[i] == '--help':
+    usage (True)
+    sys.exit (0)
+  elif cmd == None:
+    cmd = sys.argv[i]
+  else:
+    files += [ sys.argv[i] ]
+  i += 1
+

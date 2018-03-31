@@ -1,6 +1,13 @@
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 from lxml import etree  # python3-lxml
 
+def tree_height (node):
+  height = 0
+  if node != None:
+    for c in node.iterchildren():
+      height = max (height, tree_height (c))
+    height += 1
+  return height
 
 # create array holding the children of `node`
 def children (node):
@@ -27,6 +34,25 @@ def find (node, tag):
     return child
   return None
 
+def find_level_order (node, tag):
+  def find_level_ordered (node, tag, nextlevel):
+    if node.tag == tag:
+      return node
+    nextlevel += list (node.iterchildren())
+    return None
+  nextlevel = []
+  result = find_level_ordered (node, tag, nextlevel)
+  if result != None:
+    return result
+  while nextlevel:
+    nextnextlevel = []
+    for desc in nextlevel:
+      result = find_level_ordered (desc, tag, nextnextlevel)
+      if result != None:
+        return result
+    nextlevel = nextnextlevel
+  return None
+
 # Build a list of text strings contained in the subtree of `node`
 def text_list (node):
   return node.xpath ("//text()") # lxml.etree only, returns [ 'TEXT', 'TAIL', ... ]
@@ -39,7 +65,7 @@ def text (node):
 def get (node, tag):
   if tag in node.attrib:
     return node.attrib[tag]
-  child = find (node, tag)
+  child = find_level_order (node, tag)
   return text (child) if child != None else ''
 
 # convenience aliases

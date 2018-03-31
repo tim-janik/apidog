@@ -17,7 +17,7 @@ class TocTree:
     self.root.append ('\n')
     self.level = [ 0 ]
     self.stack = [ self.root ]
-  def push (self, hx, maxdepth = 9999):
+  def push (self, hx, maxdepth = 9, prefix = ''):
     n = int (hx.name[1])
     if n > maxdepth: return
     while n < self.level[-1]:
@@ -34,7 +34,7 @@ class TocTree:
       self.level += [ n ]
     li = self.soup.new_tag ('li')
     a = self.soup.new_tag ('a')
-    a['href'] = '#' + hx['id']
+    a['href'] = prefix + '#' + hx['id']
     #a['old'] = hx.name
     for c in hx.children:
       c = copy.copy (c)
@@ -66,14 +66,26 @@ def scan_toc_headings (soup):
       l.append (h)
   return l
 
+def common_dir (stringlist):
+  import os
+  p = os.path.commonprefix (stringlist)
+  i = p.rfind ('/')
+  if i >= 0:
+    return p[0:i + 1]
+  return ''
+
 # Generate a TOC from headings found in `html_files`.
 def gen_toc (html_files, toc_depth = 9):
   from bs4 import BeautifulSoup
+  stripdir = common_dir (html_files) if len (html_files) != 1 else html_files[0]
+  s = len (stripdir)
+  toctree = None
   for hf in html_files:
     fin = open (hf, 'r')
     soup = BeautifulSoup (fin.read(), 'html.parser')
     del fin
-    toctree = TocTree (soup)
+    if not toctree: toctree = TocTree (soup)
+    uniquename = hf[s:]
     for hx in scan_toc_headings (soup):
-      toctree.push (hx, toc_depth)
-    return str (toctree.root)
+      toctree.push (hx, toc_depth, uniquename)
+  return str (toctree.root) + '\n' if toctree else ''

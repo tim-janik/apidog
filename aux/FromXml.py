@@ -11,8 +11,6 @@ def printerr (*args, **kwargs):
 
 # check parsing an XML file
 def parse_xml (xmlfile):
-  if verbose:
-    printerr ('  LOADING ', xmlfile)
   p = etree.XMLParser (huge_tree = True)
   tree = etree.parse (xmlfile, parser = p)
   return tree
@@ -127,8 +125,7 @@ class DoxyParser:
         self.files += [ File (self.xmldir, c) ]
       elif kind in Class.compound_kind:
         self.classes += [ Class (self.xmldir, c, kind) ]
-      else: # class dir interface namespace struct union
-        printerr ("kind:", Node.kind (c))
+      else: # FIXME: class dir interface namespace struct union
         pass
 
 # Usage: $0 xmldir/
@@ -209,15 +206,22 @@ def print_func (f, prefix = ''):
     print (f.name, '(', end = '')
     next_indent = ',\n ' + ' ' * len (f.name)
     argstring = f.argstring().strip()
+    b = argstring.rfind (')')
+    if b > 0:
+      argstring, postfix = argstring[:b], argstring[b:]
+    else:
+      postfix = ')'
     if argstring.startswith ('(') and argstring.endswith (')'):
       argstring = argstring[1:-1].strip()
+    if argstring.startswith ('('):
+      argstring = argstring[1:]
     args = argstring.split (',')
     l = len (args)
     for i in range (l):
       t = next_indent if i else ''
       t += tick_escape (args[i])
       print (t, end = '')
-    print (');')
+    print ('%s;' % postfix)
     print ('```')
     print (format_sections (d))
 

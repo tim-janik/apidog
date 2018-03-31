@@ -31,4 +31,4 @@ __EOF
 test -z "$VERBOSE" || echo '  RUN     ' doxygen build/Doxyfile 1>&2
 doxygen build/Doxyfile
 
-$AUX/ccomment.py $VERBOSE --restore ./build/src/ ./build/xml/
+$AUX/CComment.py $VERBOSE --restore ./build/src/ ./build/xml/

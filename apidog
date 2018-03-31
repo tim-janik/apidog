@@ -8,7 +8,7 @@ def printerr (*args, **kwargs):
 
 # Print usage information
 def usage (extended = False):
-  print ("Usage: %s [OPTIONS|--help] [FILES...]" % os.path.basename (sys.argv[0]))
+  print ("Usage: %s [OPTIONS|--help] {gentoc} [FILES...]" % os.path.basename (sys.argv[0]))
   if not extended: return
   print ("OPTIONS:")
   print ("  --help           print usage information")
@@ -28,3 +28,12 @@ while i < len (sys.argv):
     files += [ sys.argv[i] ]
   i += 1
 
+# run commands
+if cmd == 'gentoc' and files:
+  from aux import html
+  print (html.gen_toc (files))
+  sys.exit (0)
+else:
+  printerr ("%s: missing command with input files" % sys.argv[0])
+  usage()
+  sys.exit (1)

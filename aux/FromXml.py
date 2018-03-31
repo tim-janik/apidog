@@ -22,6 +22,15 @@ class Data:
     self.node = node
     self.refid = Node.refid (node)
     self.name = Node.name (node)
+  def collect_data (self, node):
+    self.briefdescription = Node.get (node, 'briefdescription').strip()
+    self.detaileddescription = Node.get (node, 'detaileddescription').strip()
+  def description (self):
+    t = self.briefdescription
+    if t and self.detaileddescription:
+      t += '\n'
+    t += self.detaileddescription
+    return t.strip()
 
 class Function (Data):
   def __init__ (self, node):
@@ -29,16 +38,24 @@ class Function (Data):
     super().__init__ (node)
     self.refid = Node.get (node, 'id')
     assert self.refid
-    self.rtype = Node.get (self.node, 'type')
-    self.argstring = Node.get (self.node, 'argsstring')
-    self.briefdescription = Node.get (self.node, 'briefdescription')
-    self.detaileddescription = Node.get (self.node, 'detaileddescription')
-  def description (self):
-    t = self.briefdescription
-    if t and self.detaileddescription:
-      t += '\n'
-    t += self.detaileddescription
-    return t.strip()
+    self.raw_type = Node.get (self.node, 'type')
+    self.raw_argstring = Node.get (self.node, 'argsstring')
+    self.collect_data (self.node)
+  def argstring (self):
+    s = self.raw_argstring
+    s = re.sub (r'< +', '<', s)
+    s = re.sub (r' +>', '>', s)
+    return s
+  def rtype (self):
+    s = self.raw_type
+    s = re.sub (r' *([*&])', r'\1', s)
+    s = re.sub (r'< +', '<', s)
+    s = re.sub (r' +>', '>', s)
+    return s
+  def has_docs (self):
+    if self.briefdescription or self.detaileddescription:
+      return True
+    return False
 
 class Compound (Data):
   def __init__ (self, xmldir, node):
@@ -48,8 +65,13 @@ class Compound (Data):
     root = self.xml_tree.getroot()
     assert root.tag == 'doxygen'
     cd = Node.first_child (root)
-    assert cd != None and cd.tag == 'compounddef' and Node.kind (cd) == self.compound_kind
+    assert cd != None and cd.tag == 'compounddef'
+    if isinstance (self.compound_kind, str):
+      assert Node.kind (cd) == self.compound_kind
+    else:
+      assert Node.kind (cd) in self.compound_kind
     self.node = cd
+    self.collect_data (self.node)
     assert Node.get (self.node, 'compoundname') == self.name
     self.functions = []
     for sub in self.node:
@@ -59,21 +81,29 @@ class Compound (Data):
     for m in Node.child_filter (node, 'memberdef'):
       if Node.kind (m) == 'function':
         self.functions += [ Function (m) ]
+  def has_docs (self):
+    if self.briefdescription or self.detaileddescription:
+      return True
+    for f in self.functions:
+      if f.has_docs():
+        return True
+    return False
 
 class Namespace (Compound):
   def __init__ (self, xmldir, node):
     self.compound_kind = 'namespace'
     super().__init__ (xmldir, node)
     self.anon = self.name and self.name[0] == '@'
-  def has_docs (self):
-    for f in self.functions:
-      if f.description():
-        return True
-    return False
 
 class File (Compound):
   def __init__ (self, xmldir, node):
     self.compound_kind = 'file'
+    super().__init__ (xmldir, node)
+
+class Class (Compound):
+  compound_kind = ('class', 'struct', 'union', 'interface')
+  def __init__ (self, xmldir, node, kind):
+    self.compound_kind = kind
     super().__init__ (xmldir, node)
 
 # read XML
@@ -84,15 +114,22 @@ class DoxyParser:
     self.root = self.xml_tree.getroot()
     self.namespaces = []
     self.files = []
+    self.classes = []
     self.collect (self.root)
   def collect (self, node):
     for c in Node.child_filter (node, 'compound'):
-      if Node.kind (c) == 'namespace':
+      kind = Node.kind (c)
+      if kind == 'namespace':
         if Node.name (c) == 'std':
           continue # ignore BUILTIN_STL_SUPPORT
         self.namespaces += [ Namespace (self.xmldir, c) ]
-      if Node.kind (c) == 'file':
+      elif kind == 'file':
         self.files += [ File (self.xmldir, c) ]
+      elif kind in Class.compound_kind:
+        self.classes += [ Class (self.xmldir, c, kind) ]
+      else: # class dir interface namespace struct union
+        printerr ("kind:", Node.kind (c))
+        pass
 
 # Usage: $0 xmldir/
 xmldirs = []
@@ -113,25 +150,76 @@ while i < len (sys.argv):
 if not none_ok and len (xmldirs) < 1:
   raise RuntimeError ('missing XML dir argument')
 
-def escape_types (string):
+def md_escape (string):
   string = re.sub (r'([*\\])', r'\\\1', string)
+  return string
+def hm_escape (string):
+  return html.escape (md_escape (string))
+def tick_escape (string):
+  string = re.sub (r'```', r'\`\`\`', string)
   return string
 
 def mark_argstring (args, f = None):
   if len (args) < 2 or not args.startswith ('(') or not args.endswith (')'):
-    return escape_types (args)
+    return hm_escape (args)
   inner = args[1:-1].strip()
   title = ''
   if f:
-    title = ' title="' + html.escape (f.rtype + ' ' + f.name + ' ' + f.argstring) + '"'
-  return '(<span class="args"' + title + '>' + escape_types (inner) + '</span>)'
+    title = ' title="' + hm_escape (f.rtype() + ' ' + f.name + ' ' + f.argstring()) + '"'
+  return '(<span class="dmd-args"' + title + '>' + hm_escape (inner) + '</span>)'
 
-def print_func (f):
+def format_sections (t):
+  # split off @param and @return
+  arglist = re.split (r'\n[ \t]*(@(?:param|returns?)\b[^\n]*)', '\n' + t, re.M | re.I)
+  params = []
+  rets = []
+  txts = []
+  # sort and add markup
+  for e in arglist:
+    e = e.strip()
+    if not e:
+      continue
+    m = re.match ('(@param)\s+(\w+)\s+(.+)', e)
+    if m:
+      params += [ '- **%s:** %s' % (m[2], m[3]) ]
+      continue
+    m = re.match ('(@returns?)\s+(.+)', e)
+    if m:
+      rets += [ '- **Returns:** %s' % m[2] ]
+      continue
+    else:
+      txts += [ e ]
+  # lists and para need newline separation
+  if (params or rets) and txts:
+    params = [ '<div class="dmd-arglead"></div>\n' ] + params
+    txts = [ '\n' ] + txts
+  # combine lines
+  return '\n'.join (params + rets + txts) + '\n'
+
+def print_func (f, prefix = ''):
   d = f.description()
   if d:
-    print ('\n##', f.name, '() {-}')
-    print ('<tt>', f.rtype, f.name, mark_argstring (f.argstring, f), '</tt> \\')
-    print (d)
+    prefix = prefix + '::' if prefix else prefix
+    prefixed_name = f.name
+    if prefix:
+      prefixed_name = prefix.rstrip (':') + '.' + f.name
+    print ('\n###', prefixed_name, '() {-}')
+    print ('```{.dmd-prototype}')
+    print (tick_escape (f.rtype()))
+    print (f.name, '(', end = '')
+    next_indent = ',\n ' + ' ' * len (f.name)
+    argstring = f.argstring().strip()
+    if argstring.startswith ('(') and argstring.endswith (')'):
+      argstring = argstring[1:-1].strip()
+    args = argstring.split (',')
+    l = len (args)
+    for i in range (l):
+      t = next_indent if i else ''
+      t += tick_escape (args[i])
+      print (t, end = '')
+    print (');')
+    print ('```')
+    print (format_sections (d))
 
 for xmldir in xmldirs:
   dp = DoxyParser (xmldir)
@@ -140,10 +228,20 @@ for xmldir in xmldirs:
   for n in dp.namespaces:
     if n.anon or not n.has_docs():
       continue
-    print ('\n#', n.name)
+    print ('\n# Namespace ', n.name)
+    print (format_sections (n.description()))
+    print ('\n##', 'Functions')
     for f in n.functions:
       print_func (f)
-  print ('\n#', '-GLOBALS-')
-  for d in dp.files:
-    for f in d.functions:
+  print ('\n#', 'Global Symbols')
+  print ('\n##', 'Functions')
+  for i in dp.files:
+    for f in i.functions:
       print_func (f)
+  for c in dp.classes:
+    if not c.has_docs():
+      continue
+    print ('\n##', c.compound_kind.title(), c.name)
+    print (format_sections (c.description()))
+    for f in c.functions:
+      print_func (f, c.name)

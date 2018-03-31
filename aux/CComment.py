@@ -97,7 +97,12 @@ def restore (xmldir, db):
   def lookup (s):
     if not s in comments:
       return s
-    return html.escape (comments[s])
+    c = comments[s]
+    # strip leading asterisks in the first line
+    c = re.sub (r'^\*+ ?', '\n', c)
+    # strip leading comment asterisks for the following lines
+    c = re.sub (r'\n ?\*+ ?', '\n', c)
+    return html.escape (c)
   for f in glob.glob (os.path.join (xmldir, '*.xml')):
     with open (f, 'r') as fin:
       parts = re.split (comment_pattern, fin.read())

@@ -10,8 +10,26 @@ def printerr (*args, **kwargs):
 def usage (extended = False):
   print ("Usage: %s [OPTIONS|--help] {gentoc} [FILES...]" % os.path.basename (sys.argv[0]))
   if not extended: return
+  #       12345678911234567892123456789312345678941234567895123456789612345678971234567898
+  print ("Generate API documentation in Markdown format suitable for further processing")
+  print ("by pandoc.")
   print ("OPTIONS:")
-  print ("  --help           print usage information")
+  print ("  --help             Print usage information.")
+  print ("COMMANDS:")
+  print ("  gentoc             Generate TOC fromheadings found in input files.")
+
+def hasarg (argv, i, what):
+  if i + 1 < len (argv) and argv[i] == what:
+    return True # next option holds arg
+  return argv[i].startswith (what + '=')
+def getarg (argv, i):
+  n = argv[i].find ('=')
+  if n >= 0:
+    return argv[i][n + 1:], i
+  if i + 1  < len (argv):
+    i += 1
+    return argv[i], i
+  return None
 
 # parse args and commands
 cmd, files = None, []

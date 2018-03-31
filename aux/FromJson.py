@@ -66,20 +66,26 @@ class Jdoc:
       fi.functions += [ f ]
       if 'longname' in e:
         f.longname = e['longname']
-        printerr (f.longname)
       if 'comment' in e:
         f.comment = e['comment']
 
 for jf in jsonfiles:
+  if verbose:
+    printerr ('  GEN     ', 'markdown docs')
   root = json.loads (open (jf, "r").read())
   jd = Jdoc()
   if 'docs' in root:
     for e in root['docs']:
       jd.add (e)
+  input_files = [fi.filename for fi in jd.files.values()]
+  stripdir = html.common_dir (input_files) if len (input_files) != 1 else input_files[0]
+  s = len (stripdir)
   for fi in jd.files.values():
-    print ('\n##', fi.filename)
+    stripped_filename = fi.filename[s:]
+    print ('\n# Module', stripped_filename)
+    print ('\n##', stripped_filename, 'Functions')
     for f in fi.functions:
-      print ('\n### ', f.module_name(), '()')
+      print ('\n### ', f.module_name(), '() {-}')
       print ('```{.dmd-prototype}')
       # print (f.name, '(%s);' % (',\n  ' + ' ' * len (f.name)).join (f.params))
       print (f.name, '(%s);' % re.sub (r'(.{20}), ', r'\1,\n  ' + len (f.name) * ' ', ', '.join (f.params)))

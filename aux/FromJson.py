@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 import sys, re, os, json
+import Markdown as M
 import html
 
 # produce stderr messages
@@ -82,10 +83,10 @@ for jf in jsonfiles:
   s = len (stripdir)
   for fi in jd.files.values():
     stripped_filename = fi.filename[s:]
-    print ('\n# Module', stripped_filename)
-    print ('\n##', stripped_filename, 'Functions')
+    M.compound ('Module', stripped_filename)
+    M.typeclass (stripped_filename, 'Functions')
     for f in fi.functions:
-      print ('\n### ', f.module_name(), '() {-}')
+      M.member (f.module_name() + ' ()')
       print ('```{.dmd-prototype}')
       # print (f.name, '(%s);' % (',\n  ' + ' ' * len (f.name)).join (f.params))
       print (f.name, '(%s);' % re.sub (r'(.{20}), ', r'\1,\n  ' + len (f.name) * ' ', ', '.join (f.params)))

@@ -2,6 +2,7 @@
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 import sys, re
 from lxml import etree  # python3-lxml
+import Markdown as M
 import html
 import Node
 
@@ -200,7 +201,7 @@ def print_func (f, prefix = ''):
     prefixed_name = f.name
     if prefix:
       prefixed_name = prefix.rstrip (':') + '.' + f.name
-    print ('\n###', prefixed_name, '() {-}')
+    M.member (prefixed_name + ' ()')
     print ('```{.dmd-prototype}')
     print (tick_escape (f.rtype()))
     print (f.name, '(', end = '')
@@ -232,20 +233,20 @@ for xmldir in xmldirs:
   for n in dp.namespaces:
     if n.anon or not n.has_docs():
       continue
-    print ('\n# Namespace ', n.name)
+    M.compound ('Namespace', n.name)
     print (format_sections (n.description()))
-    print ('\n##', n.name, 'Functions')
+    M.typeclass (n.name, 'Functions')
     for f in n.functions:
       print_func (f)
-  print ('\n#', 'Global Symbols')
-  print ('\n##', 'Global', 'Functions')
+  M.compound ('Global Symbols')
+  M.typeclass ('Global', 'Functions')
   for i in dp.files:
     for f in i.functions:
       print_func (f)
   for c in dp.classes:
     if not c.has_docs():
       continue
-    print ('\n##', c.compound_kind.title(), c.name)
+    M.typeclass (c.compound_kind.title(), c.name)
     print (format_sections (c.description()))
     for f in c.functions:
       print_func (f, c.name)

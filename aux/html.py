@@ -17,8 +17,9 @@ class TocTree:
     self.root.append ('\n')
     self.level = [ 0 ]
     self.stack = [ self.root ]
-  def push (self, hx):
+  def push (self, hx, maxdepth = 9999):
     n = int (hx.name[1])
+    if n > maxdepth: return
     if n > self.level[-1]:
       ul = self.soup.new_tag ('ul')
       if self.stack[-1].name == 'ul':
@@ -66,7 +67,7 @@ def scan_toc_headings (soup):
   return l
 
 # Generate a TOC from headings found in `html_files`.
-def gen_toc (html_files):
+def gen_toc (html_files, toc_depth = 9):
   from bs4 import BeautifulSoup
   for hf in html_files:
     fin = open (hf, 'r')
@@ -74,5 +75,5 @@ def gen_toc (html_files):
     del fin
     toctree = TocTree (soup)
     for hx in scan_toc_headings (soup):
-      toctree.push (hx)
+      toctree.push (hx, toc_depth)
     return str (toctree.root)

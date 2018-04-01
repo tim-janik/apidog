@@ -46,7 +46,8 @@ def description (description):
       continue
     m = re.match ('(@param)\s+(\w+)\s+(.+)', e)
     if m:
-      params += [ '- **%s:** %s' % (m[2], m[3]) ]
+      # escape colon to avoid triggering autolink_bare_uris
+      params += [ r'- **%s\:** %s' % (m[2], m[3]) ]
       continue
     m = re.match ('(@returns?)\s+(.+)', e)
     if m:

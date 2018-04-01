@@ -60,4 +60,40 @@ def description (description):
     params = [ '<div class="mp-arglead"></div>\n' ] + params
     txts = [ '\n' ] + txts
   # combine lines
-  print ('\n'.join (params + rets + txts))
+  lines = ('\n'.join (params + rets + txts))
+  # split words for linking
+  #w = r'~?[a-zA-Z_](?:[a-zA-Z_0-9]+|[.:]+[a-zA-Z_0-9]+)*' # *slow* word pattern
+  w = r'~?[a-zA-Z_][a-zA-Z_0-9.:]*'     # simplified word pattern
+  after = r'(?<=[\s/|=+,;<>])'          # look for links after useful delimiters only
+  words = re.split (after + r'((?:#|::)'+w+'(?:\(\))?|'+w+'\(\))', lines)
+  done = []
+  for i, w in enumerate (words):
+    if i & 1:
+      w = taglink (w)
+    done.append (w)
+  lines = ''.join (done)
+  print (lines)
+
+linkables = {}
+def add_linkable (word, link):
+  key = word.lstrip ('#').lstrip (':')
+  key = re.sub (r'[:.]+', '.', key)
+  linkables[key] = link
+
+import tags_susv4
+import tags_glib
+
+def taglink (word):
+  # word has [#:]* letters+ (\(\))?
+  key = word.rstrip ('()')
+  isfunc = key != word
+  key = key.lstrip ('#').lstrip (':')
+  key = re.sub (r'[:.]+', '.', key)
+  if isfunc:
+    dicts = (tags_susv4.funcs, tags_glib.funcs, linkables)
+  else:
+    dicts = (tags_susv4.defs, tags_susv4.types, tags_glib.symbols)
+  for d in dicts:
+    if key in d:
+      return '[%s](%s)' % (word, d[key])
+  return word

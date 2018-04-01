@@ -206,11 +206,13 @@ for xmldir in xmldirs:
     M.typeclass (n.name, 'Functions')
     for f in n.functions:
       print_func (f)
+      M.add_linkable (f.name, '#' + f.name)
   M.compound ('Global Symbols')
   M.typeclass ('Global', 'Functions')
   for i in dp.files:
     for f in i.functions:
       print_func (f)
+      M.add_linkable (f.name, '#' + f.name)
   for c in dp.classes:
     if not c.has_docs():
       continue

@@ -153,9 +153,6 @@ def md_escape (string):
   return string
 def hm_escape (string):
   return html.escape (md_escape (string))
-def tick_escape (string):
-  string = re.sub (r'```', r'\`\`\`', string)
-  return string
 
 def mark_argstring (args, f = None):
   if len (args) < 2 or not args.startswith ('(') or not args.endswith (')'):
@@ -202,9 +199,8 @@ def print_func (f, prefix = ''):
     if prefix:
       prefixed_name = prefix.rstrip (':') + '.' + f.name
     M.member (prefixed_name + ' ()')
-    print ('```{.dmd-prototype}')
-    print (tick_escape (f.rtype()))
-    print (f.name, '(', end = '')
+    proto = f.rtype() + '\n'
+    proto += f.name + ' ('
     next_indent = ',\n ' + ' ' * len (f.name)
     argstring = f.argstring().strip()
     b = argstring.rfind (')')
@@ -220,10 +216,10 @@ def print_func (f, prefix = ''):
     l = len (args)
     for i in range (l):
       t = next_indent if i else ''
-      t += tick_escape (args[i])
-      print (t, end = '')
-    print ('%s;' % postfix)
-    print ('```')
+      t += args[i]
+      proto += t
+    proto += '%s;' % postfix
+    M.prototype (proto)
     print (format_sections (d))
 
 for xmldir in xmldirs:

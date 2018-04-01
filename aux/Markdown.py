@@ -18,3 +18,12 @@ def typeclass (kind, name):
 
 def member (name):
   print ('\n###', name, '{-}')
+
+def tick_escape (string):
+  string = re.sub (r'```', r'\`\`\`', string)
+  return string
+
+def prototype (prototext):
+  print ('```{.mp-prototype}')
+  print (tick_escape (prototext))
+  print ('```')

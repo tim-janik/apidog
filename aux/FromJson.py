@@ -87,10 +87,11 @@ for jf in jsonfiles:
     M.typeclass (stripped_filename, 'Functions')
     for f in fi.functions:
       M.member (f.module_name() + ' ()')
-      print ('```{.dmd-prototype}')
-      # print (f.name, '(%s);' % (',\n  ' + ' ' * len (f.name)).join (f.params))
-      print (f.name, '(%s);' % re.sub (r'(.{20}), ', r'\1,\n  ' + len (f.name) * ' ', ', '.join (f.params)))
-      print ('```')
+      findent = ' ' * len (f.name)
+      proto = f.name + ' ('
+      proto += re.sub (r'(.{20}), ', r'\1,\n  ' + findent, ', '.join (f.params))
+      proto += ');'
+      M.prototype (proto)
       d = f.description()
       if d:
         print (re.sub (r'^', '', d.strip(), flags = re.M))

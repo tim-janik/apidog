@@ -92,6 +92,4 @@ for jf in jsonfiles:
       proto += re.sub (r'(.{20}), ', r'\1,\n  ' + findent, ', '.join (f.params))
       proto += ');'
       M.prototype (proto)
-      d = f.description()
-      if d:
-        print (re.sub (r'^', '', d.strip(), flags = re.M))
+      M.description (f.description())

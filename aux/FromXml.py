@@ -163,34 +163,6 @@ def mark_argstring (args, f = None):
     title = ' title="' + hm_escape (f.rtype() + ' ' + f.name + ' ' + f.argstring()) + '"'
   return '(<span class="dmd-args"' + title + '>' + hm_escape (inner) + '</span>)'
 
-def format_sections (t):
-  # split off @param and @return
-  arglist = re.split (r'\n[ \t]*(@(?:param|returns?)\b[^\n]*)', '\n' + t, re.M | re.I)
-  params = []
-  rets = []
-  txts = []
-  # sort and add markup
-  for e in arglist:
-    e = e.strip()
-    if not e:
-      continue
-    m = re.match ('(@param)\s+(\w+)\s+(.+)', e)
-    if m:
-      params += [ '- **%s:** %s' % (m[2], m[3]) ]
-      continue
-    m = re.match ('(@returns?)\s+(.+)', e)
-    if m:
-      rets += [ '- **Returns:** %s' % m[2] ]
-      continue
-    else:
-      txts += [ e ]
-  # lists and para need newline separation
-  if (params or rets) and txts:
-    params = [ '<div class="dmd-arglead"></div>\n' ] + params
-    txts = [ '\n' ] + txts
-  # combine lines
-  return '\n'.join (params + rets + txts) + '\n'
-
 def print_func (f, prefix = ''):
   d = f.description()
   if d:
@@ -220,7 +192,7 @@ def print_func (f, prefix = ''):
       proto += t
     proto += '%s;' % postfix
     M.prototype (proto)
-    print (format_sections (d))
+    M.description (d)
 
 for xmldir in xmldirs:
   if verbose:
@@ -230,7 +202,7 @@ for xmldir in xmldirs:
     if n.anon or not n.has_docs():
       continue
     M.compound ('Namespace', n.name)
-    print (format_sections (n.description()))
+    M.description (n.description())
     M.typeclass (n.name, 'Functions')
     for f in n.functions:
       print_func (f)
@@ -243,6 +215,6 @@ for xmldir in xmldirs:
     if not c.has_docs():
       continue
     M.typeclass (c.compound_kind.title(), c.name)
-    print (format_sections (c.description()))
+    M.description (c.description())
     for f in c.functions:
       print_func (f, c.name)

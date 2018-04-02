@@ -2,6 +2,10 @@
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 import sys, os
 
+# Installation location (configured by 'make install')
+INSTALLCONFIG = [ '.' ]
+sys.path.insert (0, os.path.realpath (INSTALLCONFIG[0]))
+
 # Produce stderr messages
 def printerr (*args, **kwargs):
   print (*args, file = sys.stderr, **kwargs)

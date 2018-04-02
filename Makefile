@@ -57,5 +57,9 @@ test-cxx:
 	aux/run-doxygen $(QVERBOSE) tests/
 	aux/FromXml.py $(QVERBOSE) build/xml > tests/tests.md
 	pandoc $(QVERBOSE) -S -s --section-divs --number-sections tests/tests.md > tests/tests.html
+	grep -qE '<li\b([^<]|<[^l])*zed.*zed-unused' tests/tests.html	# check param+return lists
+	grep -qE '<li\b([^<]|<[^l])*Returns:' tests/tests.html		# check param+return lists
+	grep -q  'href="[^"]*/errno.h.html"[^<]*EINTR' tests/tests.html	# check susv4 linking
+	grep -q  'href="#foo"[^<]*\bfoo\(\)' tests/tests.html		# check internal cross-linking
 
 # --css styles.css

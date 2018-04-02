@@ -3,7 +3,7 @@
 /** Function Foo Documentation
  * @param x A X coordinate
  * @param y A Y coordinate
- * @param z - unused
+ * @param zed - zed-unused
  * @returns Wether x + y are greater 0.
  *
  * This is a test comment.
@@ -14,9 +14,9 @@
  * pthread_attr_t ::pthread_attr_t #pthread_attr_t pthread_attr_t()
  */
 bool
-foo (int x, double y, float z)
+foo (int x, double y, float zed)
 {
-  // Ignore z...
+  // Ignore zed...
   return x + y > 0;
 }
 

@@ -44,6 +44,9 @@ class CommentTransformer:
     elif char == '<' and self.buffer[-4:] in ('///<', '//!<'):
       self.start_line = self.fline
       self.feed_specific = self.feed_scomment
+    elif char == '/' and self.buffer[-3:] == '///':
+      self.start_line = self.fline
+      self.feed_specific = self.feed_scomment
     #elif char == '<' and self.buffer[-3:] == '/*<':
     #  self.buffer[-1] = '*'
     #  self.buffer += '<'        # for doxygen, fake '/**<' from  '/*<'
@@ -72,7 +75,7 @@ class CommentTransformer:
   def feed_scomment (self, char):
     self.cbuffer += char
     if char == '\n':
-      self.buffer += ' ' + self.cregistry.add (self.cbuffer[:-1], self.fname, self.start_line) + ' '
+      self.buffer += ' ' + self.cregistry.add (self.cbuffer, self.fname, self.start_line) + ' '
       self.buffer += '\n'
       self.feed_specific = self.feed_text
       self.cbuffer = ''

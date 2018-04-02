@@ -29,6 +29,7 @@ auxdir_files = $(strip		\
 auxdir_filesF = $(notdir $(auxdir_files))
 
 Q = $(if $(findstring 1, $(V)) ,, @)
+QVERBOSE = $(if $(findstring 1, $(V)) ,--verbose,)
 INSTALL = install
 
 all:
@@ -48,3 +49,13 @@ uninstall:
 	rm -f '$(DESTDIR)$(bindir)/apidog'
 	(cd $(DESTDIR)$(auxdir) && rm -f $(auxdir_filesF))
 	rm -rf $(DESTDIR)$(auxdir)/__pycache__/
+
+check: test-cxx
+
+
+test-cxx:
+	aux/run-doxygen $(QVERBOSE) tests/
+	aux/FromXml.py $(QVERBOSE) build/xml > tests/tests.md
+	pandoc $(QVERBOSE) -S -s --section-divs --number-sections tests/tests.md > tests/tests.html
+
+# --css styles.css

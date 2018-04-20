@@ -1,0 +1,48 @@
+#!/bin/bash
+set -e # -x
+
+SCRIPTNAME=${0#*/} ; die() { [ -z "$*" ] || echo "$SCRIPTNAME: $*" >&2; exit 127 ; }
+AUX=`dirname "$0"`/
+VERBOSE=
+
+test "$1" != "--verbose" || { VERBOSE=--verbose ; shift ; }
+
+test "$#" -ge 1 || die "missing input directory"
+INPUT="`readlink -f $1`"
+
+# we require jsdoc-json
+NODEMODULES=
+D="$INPUT/"
+while test "$D" != / ; do
+  test -d "$D/node_modules/.bin/" && {
+    NODEMODULES="$D/node_modules/"
+    break
+  } || D=`dirname "$D"`
+done
+test -n "$NODEMODULES" || die "failed to find npm packages (node_modules/.bin) in directory hierarchy: $INPUT"
+test -x "$NODEMODULES/.bin/jsdoc" || die "failed to find npm package jsdoc in directory: $NODEMODULES/.bin"
+test -r "$NODEMODULES/jsdoc-json/publish.js" || die "failed to find jsdoc-json in directory: $NODEMODULES/"
+
+# clear build/
+test -z "$VERBOSE" || echo '  CLEAR   ' ./build/ 1>&2
+rm -f ./build/doc.json ./build/jsdoc.json
+mkdir -p ./build/
+
+# configure jsdoc
+test -z "$VERBOSE" || echo '  WRITE   ' build/jsdoc.json 1>&2
+cat <<-__EOF >> build/jsdoc.json
+    { "plugins": ["plugins/markdown", "$NODEMODULES/jsdoc-vue"],
+      "recurseDepth": 1,
+      "source": { "includePattern": ".+\\\\.(jsx|jsdoc|js|vue)$",
+                  "excludePattern": "(^|\\\\/|\\\\\\\\)_" },
+      "sourceType": "module",
+      "tags": { "allowUnknownTags": true, "dictionaries": ["jsdoc","closure"] },
+      "templates": { "cleverLinks": true, "monospaceLinks": true },
+      "opts": { "encoding": "utf8" }
+    }
+__EOF
+
+# run jsdoc
+test -z "$VERBOSE" || echo '  RUN     ' jsdoc build/jsdoc.json -d build/doc.json "$INPUT" 1>&2
+"$NODEMODULES/.bin/jsdoc" --template "$NODEMODULES/jsdoc-json/" -c build/jsdoc.json -d build/doc.json "$INPUT"
+# -P $INPUT/package.json

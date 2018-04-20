@@ -2,6 +2,7 @@
 # This Source Code Form is licensed MPL-2.0: http://mozilla.org/MPL/2.0
 import sys, re
 from lxml import etree  # python3-lxml
+import Markdown as M
 import html
 import Node
 
@@ -152,9 +153,6 @@ def md_escape (string):
   return string
 def hm_escape (string):
   return html.escape (md_escape (string))
-def tick_escape (string):
-  string = re.sub (r'```', r'\`\`\`', string)
-  return string
 
 def mark_argstring (args, f = None):
   if len (args) < 2 or not args.startswith ('(') or not args.endswith (')'):
@@ -165,34 +163,6 @@ def mark_argstring (args, f = None):
     title = ' title="' + hm_escape (f.rtype() + ' ' + f.name + ' ' + f.argstring()) + '"'
   return '(<span class="dmd-args"' + title + '>' + hm_escape (inner) + '</span>)'
 
-def format_sections (t):
-  # split off @param and @return
-  arglist = re.split (r'\n[ \t]*(@(?:param|returns?)\b[^\n]*)', '\n' + t, re.M | re.I)
-  params = []
-  rets = []
-  txts = []
-  # sort and add markup
-  for e in arglist:
-    e = e.strip()
-    if not e:
-      continue
-    m = re.match ('(@param)\s+(\w+)\s+(.+)', e)
-    if m:
-      params += [ '- **%s:** %s' % (m[2], m[3]) ]
-      continue
-    m = re.match ('(@returns?)\s+(.+)', e)
-    if m:
-      rets += [ '- **Returns:** %s' % m[2] ]
-      continue
-    else:
-      txts += [ e ]
-  # lists and para need newline separation
-  if (params or rets) and txts:
-    params = [ '<div class="dmd-arglead"></div>\n' ] + params
-    txts = [ '\n' ] + txts
-  # combine lines
-  return '\n'.join (params + rets + txts) + '\n'
-
 def print_func (f, prefix = ''):
   d = f.description()
   if d:
@@ -200,10 +170,9 @@ def print_func (f, prefix = ''):
     prefixed_name = f.name
     if prefix:
       prefixed_name = prefix.rstrip (':') + '.' + f.name
-    print ('\n###', prefixed_name, '() {-}')
-    print ('```{.dmd-prototype}')
-    print (tick_escape (f.rtype()))
-    print (f.name, '(', end = '')
+    M.member (prefixed_name + ' ()')
+    proto = f.rtype() + '\n'
+    proto += f.name + ' ('
     next_indent = ',\n ' + ' ' * len (f.name)
     argstring = f.argstring().strip()
     b = argstring.rfind (')')
@@ -219,11 +188,11 @@ def print_func (f, prefix = ''):
     l = len (args)
     for i in range (l):
       t = next_indent if i else ''
-      t += tick_escape (args[i])
-      print (t, end = '')
-    print ('%s;' % postfix)
-    print ('```')
-    print (format_sections (d))
+      t += args[i]
+      proto += t
+    proto += '%s;' % postfix
+    M.prototype (proto)
+    M.description (d)
 
 for xmldir in xmldirs:
   if verbose:
@@ -232,20 +201,22 @@ for xmldir in xmldirs:
   for n in dp.namespaces:
     if n.anon or not n.has_docs():
       continue
-    print ('\n# Namespace ', n.name)
-    print (format_sections (n.description()))
-    print ('\n##', n.name, 'Functions')
+    M.compound ('Namespace', n.name)
+    M.description (n.description())
+    M.typeclass (n.name, 'Functions')
     for f in n.functions:
       print_func (f)
-  print ('\n#', 'Global Symbols')
-  print ('\n##', 'Global', 'Functions')
+      M.add_linkable (f.name, '#' + f.name)
+  M.compound ('Global Symbols')
+  M.typeclass ('Global', 'Functions')
   for i in dp.files:
     for f in i.functions:
       print_func (f)
+      M.add_linkable (f.name, '#' + f.name)
   for c in dp.classes:
     if not c.has_docs():
       continue
-    print ('\n##', c.compound_kind.title(), c.name)
-    print (format_sections (c.description()))
+    M.typeclass (c.compound_kind.title(), c.name)
+    M.description (c.description())
     for f in c.functions:
       print_func (f, c.name)

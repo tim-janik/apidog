@@ -10,11 +10,30 @@ def printerr (*args, **kwargs):
 def usage (extended = False):
   print ("Usage: %s [OPTIONS|--help] {gentoc} [FILES...]" % os.path.basename (sys.argv[0]))
   if not extended: return
+  #       12345678911234567892123456789312345678941234567895123456789612345678971234567898
+  print ("Generate API documentation in Markdown format suitable for further processing")
+  print ("by pandoc.")
   print ("OPTIONS:")
-  print ("  --help           print usage information")
+  print ("  --help             Print usage information.")
+  print ("COMMANDS:")
+  print ("  gentoc             Generate TOC fromheadings found in input files.")
+
+def hasarg (argv, i, what):
+  if i + 1 < len (argv) and argv[i] == what:
+    return True # next option holds arg
+  return argv[i].startswith (what + '=')
+def getarg (argv, i):
+  n = argv[i].find ('=')
+  if n >= 0:
+    return argv[i][n + 1:], i
+  if i + 1  < len (argv):
+    i += 1
+    return argv[i], i
+  return None
 
 # parse args and commands
 cmd, files = None, []
+toc_depth = 9
 i = 1
 while i < len (sys.argv):
   if sys.argv[i] == '--verbose':
@@ -22,6 +41,9 @@ while i < len (sys.argv):
   elif sys.argv[i] == '--help':
     usage (True)
     sys.exit (0)
+  elif hasarg (sys.argv, i, '--toc-depth'):
+    arg, i = getarg (sys.argv, i)
+    toc_depth = int (arg)
   elif cmd == None:
     cmd = sys.argv[i]
   else:
@@ -35,7 +57,7 @@ if cmd == 'gentoc' and files:
   # input file names to the TOC anchors, this can be used to generate a combined
   # TOC across multiple input HTML files.
   from aux import html
-  print (html.gen_toc (files))
+  print (html.gen_toc (files, toc_depth))
   sys.exit (0)
 else:
   printerr ("%s: missing command with input files" % sys.argv[0])

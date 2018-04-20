@@ -30,6 +30,10 @@ while i < len (sys.argv):
 
 # run commands
 if cmd == 'gentoc' and files:
+  # Given a pandoc generated HTML file, read all heading tags and generate a
+  # <div id="TOC"/> section similar to pandoc --toc. In combination with adding
+  # input file names to the TOC anchors, this can be used to generate a combined
+  # TOC across multiple input HTML files.
   from aux import html
   print (html.gen_toc (files))
   sys.exit (0)

@@ -84,6 +84,7 @@ class CommentTransformer:
     self.fline += 1
 
 # == globs ==
+# Keep FILE_PATTERNS in sync with doxyfile.txt:FILE_PATTERNS
 FILE_PATTERNS = [
       '*.c', '*.cc', '*.cxx', '*.cpp', '*.c++' '*.C', '*.CC', '*.Cpp', '*.CPP', '*.CXX', '*.C++',
       '*.h', '*.hh', '*.hxx', '*.hpp', '*.h++', '*.H', '*.HH', '*.Hpp', '*.HPP', '*.HXX', '*.H++',

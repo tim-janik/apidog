@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e # -x
+
+SCRIPTNAME=${0#*/} ; die() { [ -z "$*" ] || echo "$SCRIPTNAME: $*" >&2; exit 127 ; }
+AUX=`dirname "$0"`
+VERBOSE=
+
+test "$1" != "--verbose" || { VERBOSE=--verbose ; shift ; }
+
+test "$#" -ge 1 || die "missing input directory"
+INPUT="$1"
+
+# clear build/
+test -z "$VERBOSE" || echo '  CLEAR   ' ./build/ 1>&2
+rm -rf ./build/src/ ./build/xml/ ./build/Doxyfile
+mkdir -p ./build/src/
+
+# copy and filter source files, doing this with one python invokation
+# is *much* faster than creating a process per file with INPUT_FILTER.
+$AUX/CComment.py $VERBOSE --store "$INPUT" ./build/src/
+
+test -z "$VERBOSE" || echo '  WRITE   ' build/Doxyfile 1>&2
+cp "$AUX"/Doxyfile build/Doxyfile
+
+# run doxygen
+cat <<-__EOF >> build/Doxyfile
+    INPUT            = ./build/src/
+    OUTPUT_DIRECTORY = build/
+__EOF
+
+test -z "$VERBOSE" || echo '  RUN     ' doxygen build/Doxyfile 1>&2
+doxygen build/Doxyfile
+
+$AUX/ccomment.py $VERBOSE --restore ./build/src/ ./build/xml/

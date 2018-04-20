@@ -1,0 +1,73 @@
+# Doxygen configuration for doxygen-xml
+
+DOXYFILE_ENCODING      = UTF-8
+
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+
+GENERATE_XML           = YES
+XML_PROGRAMLISTING     = NO
+
+INPUT_ENCODING         = UTF-8
+FULL_PATH_NAMES        = NO
+#? FULL_PATH_NAMES        = YES
+#? STRIP_FROM_PATH        =
+#? STRIP_FROM_INC_PATH    =
+
+# Keep FILE_PATTERNS in sync with ccomment.py:FILE_PATTERNS
+FILE_PATTERNS	       =	*.c *.cc *.cxx *.cpp *.c++ *.C *.CC *.Cpp *.CPP *.CXX *.C++ \
+				*.h *.hh *.hxx *.hpp *.h++ *.H *.HH *.Hpp *.HPP *.HXX *.H++ \
+				*.java *.idl *.inc
+
+MACRO_EXPANSION        = YES
+SKIP_FUNCTION_MACROS   = YES
+EXPAND_ONLY_PREDEF     = YES
+EXPAND_AS_DEFINED      =
+PREDEFINED	       = DOXYGEN __SIZEOF_LONG__=8 static_assert(x,y)= "__attribute__(x)="
+
+INTERNAL_DOCS          = NO
+EXTRACT_LOCAL_CLASSES  = NO
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MARKDOWN_SUPPORT       = NO
+AUTOLINK_SUPPORT       = NO
+CPP_CLI_SUPPORT        = YES
+IDL_PROPERTY_SUPPORT   = YES
+SIP_SUPPORT            = NO
+CASE_SENSE_NAMES       = NO
+SHOW_INCLUDE_FILES     = NO
+MAX_INITIALIZER_LINES  = 1
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+
+SORT_MEMBERS_CTORS_1ST = YES
+#? SORT_MEMBER_DOCS       = NO
+#? SORT_BRIEF_DOCS        = YES
+#? SORT_GROUP_NAMES       = YES
+#? SORT_BY_SCOPE_NAME     = YES
+
+#? BRIEF_MEMBER_DESC      = NO
+#? REPEAT_BRIEF           = NO
+#? ALWAYS_DETAILED_SEC    = YES
+#? INLINE_INHERITED_MEMB  = YES
+#? INHERIT_DOCS           = NO
+#? OPTIMIZE_OUTPUT_JAVA   = YES
+#? SUBGROUPING            = NO
+#? TYPEDEF_HIDES_STRUCT   = YES
+#? HIDE_COMPOUND_REFERENCE= YES
+#? SHOW_GROUPED_MEMB_INC  = YES
+#? SHOW_USED_FILES        = NO
+#? CLASS_DIAGRAMS         = NO
+#? HIDE_UNDOC_RELATIONS   = NO
+#? CLASS_GRAPH            = NO
+#? COLLABORATION_GRAPH    = NO
+#? GROUP_GRAPHS           = NO
+#? INCLUDE_GRAPH          = NO
+#? INCLUDED_BY_GRAPH      = NO
+#? GRAPHICAL_HIERARCHY    = NO
+#? DIRECTORY_GRAPH        = NO
+#? GENERATE_LEGEND        = NO
+#? ALPHABETICAL_INDEX     = NO
+
+# AutoGen Definitions (see http://autogen.sf.net) file that captures the
+GENERATE_AUTOGEN_DEF   = YES
